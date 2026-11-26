@@ -1,0 +1,45 @@
+# 字节 / Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 依赖与锁（保留 uv.lock / requirements-lock，忽略本地缓存）
+# uv.lock 提交，此处不忽略
+
+# 配置与密钥（严禁提交真实 Key）
+.env
+.env.*
+config/secrets.*
+*.key
+
+# 测试 / 覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+
+# 类型检查 /  lint
+.mypy_cache/
+.ruff_cache/
+.idea/
+.vscode/
+*.swp
+
+# 日志与本地数据
+logs/
+*.log
+data/
+*.sqlite3
+
+# macOS
+.DS_Store
