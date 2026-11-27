@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from llm_cli import config
 from llm_cli.config import Settings
 
 
 def test_default_settings(monkeypatch):
+    monkeypatch.setattr(config, "load_dotenv", lambda *args, **kwargs: False)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)

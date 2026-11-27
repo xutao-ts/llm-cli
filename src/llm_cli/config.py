@@ -26,7 +26,8 @@ class Settings:
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> Settings:
-        load_dotenv()
+        # 从项目根目录的 .env 加载；已存在的环境变量优先，不覆盖
+        load_dotenv(Path.cwd() / ".env")
         if config_path and config_path.exists():
             # 预留：后续可读取 TOML 配置；当前先以环境变量为主
             pass
