@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from llm_cli import cli
 from llm_cli.client import ChatResult, Usage
 from llm_cli.config import Settings
@@ -72,3 +74,37 @@ def test_cli_without_question(capsys):
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "交互模式" in captured.err + captured.out
+
+
+def test_cli_logs_carry_request_id(monkeypatch):
+    stub_result = ChatResult(
+        content="hi",
+        model="m",
+        finish_reason="stop",
+        usage=Usage(),
+        raw={},
+    )
+    records: list[str] = []
+
+    class RecordingLogger:
+        def info(self, msg: str, *args):
+            records.append(msg % args)
+
+        def error(self, msg: str, *args):
+            records.append(msg % args)
+
+    monkeypatch.setattr(cli.Settings, "load", _stub_load("sk-test"))
+    monkeypatch.setattr(cli.LLMClient, "chat", lambda self, messages: stub_result)
+    monkeypatch.setattr(cli, "setup_logger", lambda *_a, **_k: RecordingLogger())
+
+    cli.main(["你好"])
+    joined = "\n".join(records)
+    # 日志中应出现形如 [7d1c18af] 的 8 位十六进制请求标识
+    assert re.search(r"\[[0-9a-f]{8}\]", joined)
+
+
+def test_cli_help_lists_all_options(capsys):
+    parser = cli.build_parser()
+    help_text = parser.format_help()
+    for option in ("--model", "--debug", "--raw", "question"):
+        assert option in help_text

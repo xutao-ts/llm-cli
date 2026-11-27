@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import uuid
 
 from .client import ChatResult, LLMClient, Message
 from .config import Settings
@@ -15,11 +16,26 @@ from .logger import setup_logger
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="llm-cli", description="LLM 命令行问答工具")
-    parser.add_argument("question", nargs="?", help="提问内容；不填则进入交互模式（后续实现）")
-    parser.add_argument("--model", help="覆盖默认模型")
-    parser.add_argument("--debug", action="store_true", help="开启 DEBUG 日志")
-    parser.add_argument("--raw", action="store_true", help="输出模型返回的原始 JSON")
+    parser = argparse.ArgumentParser(
+        prog="llm-cli",
+        description="LLM 命令行问答工具（OpenAI 兼容协议）",
+    )
+    parser.add_argument(
+        "question",
+        nargs="?",
+        help="提问内容；不填则进入交互模式（后续实现）",
+    )
+    parser.add_argument("--model", help="覆盖默认模型名称")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="开启 DEBUG 级别日志",
+    )
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="输出模型返回的原始 JSON，而非格式化结果",
+    )
     return parser
 
 
@@ -49,13 +65,17 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     settings = Settings.load()
     logger = setup_logger("DEBUG" if args.debug else settings.log_level)
+    request_id = uuid.uuid4().hex[:8]
 
     if not args.question:
-        logger.info("交互模式尚未实现，请传入问题文本。")
+        logger.info("[%s] 交互模式尚未实现，请传入问题文本。", request_id)
         return 0
 
     if not settings.api_key:
-        logger.error("未配置 LLM_API_KEY，无法调用模型；请在环境变量或 .env 中填写。")
+        logger.error(
+            "[%s] 未配置 LLM_API_KEY，无法调用模型；请在环境变量或 .env 中填写。",
+            request_id,
+        )
         return 1
 
     client = LLMClient(
@@ -65,11 +85,11 @@ def main(argv: list[str] | None = None) -> int:
         timeout=settings.timeout,
     )
 
-    logger.info("已接收问题：%s", args.question)
+    logger.info("[%s] 已接收问题：%s", request_id, args.question)
     try:
         result = client.chat([Message(role="user", content=args.question)])
     except RuntimeError as exc:
-        logger.error("%s", exc)
+        logger.error("[%s] %s", request_id, exc)
         return 1
 
     if args.raw:

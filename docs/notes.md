@@ -10,7 +10,9 @@
 
 ## 待办（对应周排期）
 
-- [ ] 接入第一家模型 API，跑通一次问答（W01）
-- [ ] 补 asyncio 并发调用示例（W02）
+- [x] 接入第一家模型 API，跑通一次问答（W01）
+- [x] 补 asyncio 并发调用示例（W02，见 `examples/async_batch.py`）
+- [x] Transformer 基础概念笔记（W02，见 `docs/notes_transformer.md`）
+- [x] 失败案例环节归因记录（W02，见 `docs/notes_failures.md`）
 - [ ] 异常处理与单测覆盖（W03）
 - [ ] 流式输出与 JSON 结构化输出（W03）

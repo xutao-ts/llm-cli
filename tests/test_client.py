@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from llm_cli.client import LLMClient
+import asyncio
+
+from llm_cli.client import LLMClient, Message, _parse_response
 
 
 def _sample_response() -> dict:
@@ -32,7 +34,7 @@ def _sample_response() -> dict:
 
 
 def test_parse_extracts_content_and_usage():
-    result = LLMClient._parse(_sample_response())
+    result = _parse_response(_sample_response())
 
     assert result.content == "你好！很高兴见到你。"
     assert result.model == "deepseek-v4-flash"
@@ -46,8 +48,35 @@ def test_parse_extracts_content_and_usage():
 
 def test_parse_missing_usage_defaults_to_zero():
     data = {"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}
-    result = LLMClient._parse(data)
+    result = _parse_response(data)
 
     assert result.content == "ok"
     assert result.usage.total_tokens == 0
     assert result.usage.reasoning_tokens == 0
+
+
+def test_gather_chats_returns_results_in_order_without_raising(monkeypatch):
+    from llm_cli.client import ChatResult, Usage
+
+    client = LLMClient(api_key="sk-test", base_url="https://example.com/v1", model="m", timeout=5.0)
+
+    def _result(content: str) -> ChatResult:
+        return ChatResult(content=content, model="m", finish_reason="stop", usage=Usage(), raw={})
+
+    async def mixed(messages: list[Message]):
+        if messages[0].content == "第二题":
+            raise RuntimeError("boom")
+        return _result(messages[0].content)
+
+    monkeypatch.setattr(client, "async_chat", mixed)
+    items = [
+        ("a", [Message(role="user", content="第一题")]),
+        ("b", [Message(role="user", content="第二题")]),
+    ]
+
+    results = asyncio.run(LLMClient.gather_chats(client, items))
+
+    assert [label for label, _ in results] == ["a", "b"]
+    assert results[0][1].content == "第一题"
+    assert isinstance(results[1][1], RuntimeError)
+    assert "boom" in str(results[1][1])
